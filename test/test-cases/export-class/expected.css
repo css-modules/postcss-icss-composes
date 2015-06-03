@@ -5,3 +5,6 @@
 ._input__exportName {
   color: green;
 }
+._input__exportName:hover {
+  color: red;
+}
