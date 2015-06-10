@@ -3,3 +3,7 @@
     opacity: 0;
   }
 }
+
+.fader {
+  animation: :local(fade-in) 1s;
+}

@@ -1,9 +1,14 @@
 
 :export {
   fade-in: _input__fade-in;
+  fader: _input__fader;
 }
 @keyframes _input__fade-in {
   from {
     opacity: 0;
   }
+}
+
+_input__fader {
+  animation: _input__fade-in 1s;
 }
