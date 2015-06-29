@@ -35,7 +35,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
     let exports = {};
 
     function exportScopedName(name) {
-      let scopedName = generateScopedName(name, css.source.input.from);
+      let scopedName = generateScopedName(name, css.source.input.from, css.source.input.css);
       exports[name] = exports[name] || [];
       if(exports[name].indexOf(scopedName) < 0) {
         exports[name].push(scopedName);
@@ -156,7 +156,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
   };
 });
 
-processor.generateScopedName = function(exportedName, path) {
+processor.generateScopedName = function(exportedName, path, css) {
   let sanitisedPath = path.replace(/\.[^\.\/\\]+$/, '').replace(/[\W_]+/g, '_').replace(/^_|_$/g, '');
   return `_${sanitisedPath}__${exportedName}`;
 };
