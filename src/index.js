@@ -156,7 +156,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
   };
 });
 
-processor.generateScopedName = function(exportedName, path, css) {
+processor.generateScopedName = function(exportedName, path) {
   let sanitisedPath = path.replace(/\.[^\.\/\\]+$/, '').replace(/[\W_]+/g, '_').replace(/^_|_$/g, '');
   return `_${sanitisedPath}__${exportedName}`;
 };
