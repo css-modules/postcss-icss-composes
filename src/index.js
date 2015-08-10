@@ -130,12 +130,18 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
       });
     });
 
-    // Find any :local keyframes
     css.eachAtRule(atrule => {
+      // Find any :local keyframes and rewrite them
       if(/keyframes$/.test(atrule.name)) {
-        var localMatch = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params);
-        if(localMatch) {
-          atrule.params = exportScopedName(localMatch[1]);
+        var localKeyFrames = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params);
+        if(localKeyFrames) {
+          atrule.params = exportScopedName(localKeyFrames[1]);
+        }
+      // Find any local() custom media, export them, but leave them as they are
+      } else if (atrule.name === "custom-media") {
+        var customMedia = /^\s*local\(([^\)]+)\)\s*(.*)$/.exec(atrule.params);
+        if(customMedia) {
+          exports[customMedia[1]] = [`"${customMedia[2]}"`];
         }
       }
     });
