@@ -1,1 +1,1 @@
-@custom-media local(--small) (max-width: 30rem);
+@custom-media --small (max-width: 30rem);

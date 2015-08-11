@@ -139,7 +139,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
         }
       // Find any local() custom media, export them, but leave them as they are
       } else if (atrule.name === "custom-media") {
-        var customMedia = /^\s*local\(([^\)]+)\)\s*(.*)$/.exec(atrule.params);
+        var customMedia = /^\s*(--\S+)\s*(.*)$/.exec(atrule.params);
         if(customMedia) {
           let [/*match*/, breakpointName, mediaExpr] = customMedia;
           exports[breakpointName] = [`"${ mediaExpr}"`];
