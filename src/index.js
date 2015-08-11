@@ -141,7 +141,9 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
       } else if (atrule.name === "custom-media") {
         var customMedia = /^\s*local\(([^\)]+)\)\s*(.*)$/.exec(atrule.params);
         if(customMedia) {
-          exports[customMedia[1]] = [`"${customMedia[2]}"`];
+          let [/*match*/, breakpointName, mediaExpr] = customMedia;
+          exports[breakpointName] = [`"${ mediaExpr}"`];
+          atrule.params = `${breakpointName} ${mediaExpr}`;
         }
       }
     });
