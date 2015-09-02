@@ -1,5 +1,6 @@
 import postcss from 'postcss';
 import Tokenizer from 'css-selector-tokenizer';
+import { relative, sep } from 'path';
 
 let hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -28,14 +29,22 @@ function getSingleLocalNamesForComposes(selectors) {
   });
 }
 
-const processor = postcss.plugin('postcss-modules-scope', function(options) {
+/**
+ * @param  {object}   options
+ * @param  {function} options.generateScopedName
+ * @param  {string}   options.rootDir
+ * @return {function}
+ */
+const processor = postcss.plugin('postcss-modules-scope', function(options = {}) {
+  const rootDir = options.rootDir || process.cwd();
+
   return (css) => {
-    let generateScopedName = options && options.generateScopedName || processor.generateScopedName;
+    let generateScopedName = options.generateScopedName || processor.generateScopedName;
 
     let exports = {};
 
     function exportScopedName(name) {
-      let scopedName = generateScopedName(name, css.source.input.from, css.source.input.css);
+      let scopedName = generateScopedName(name, sep + relative(rootDir, css.source.input.from), css.source.input.css);
       exports[name] = exports[name] || [];
       if(exports[name].indexOf(scopedName) < 0) {
         exports[name].push(scopedName);
