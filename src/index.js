@@ -133,17 +133,9 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
     // Find any :local keyframes
     css.walkAtRules(atrule => {
       if(/keyframes$/.test(atrule.name)) {
-        var localKeyFrames = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params);
-        if(localKeyFrames) {
-          atrule.params = exportScopedName(localKeyFrames[1]);
-        }
-      // Find any local() custom media, export them, but leave them as they are
-      } else if (atrule.name === "custom-media") {
-        var customMedia = /^\s*(--\S+)\s*(.*)$/.exec(atrule.params);
-        if(customMedia) {
-          let [/*match*/, breakpointName, mediaExpr] = customMedia;
-          exports[breakpointName] = [`"${ mediaExpr}"`];
-          atrule.params = `${breakpointName} ${mediaExpr}`;
+        var localMatch = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params);
+        if(localMatch) {
+          atrule.params = exportScopedName(localMatch[1]);
         }
       }
     });

@@ -1,4 +1,0 @@
-@custom-media --small (max-width: 30rem);
-:export{
-  --small: "(max-width: 30rem)"
-}
