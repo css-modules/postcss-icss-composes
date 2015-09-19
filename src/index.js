@@ -79,20 +79,20 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
 
     // Find any :import and remember imported names
     let importedNames = {};
-    css.eachRule(rule => {
+    css.walkRules(rule => {
       if(/^:import\(.+\)$/.test(rule.selector)) {
-        rule.eachDecl(decl => {
+        rule.walkDecls(decl => {
           importedNames[decl.prop] = true;
         });
       }
     });
 
     // Find any :local classes
-    css.eachRule(rule => {
+    css.walkRules(rule => {
       let selector = Tokenizer.parse(rule.selector);
       let newSelector = traverseNode(selector);
       rule.selector = Tokenizer.stringify(newSelector);
-      rule.eachDecl("composes", decl => {
+      rule.walkDecls("composes", decl => {
         let localNames = getSingleLocalNamesForComposes(selector);
         let classes = decl.value.split(/\s+/);
         classes.forEach((className) => {
@@ -110,9 +110,9 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
             throw decl.error("referenced class name \"" + className + "\" in composes not found");
           }
         });
-        decl.removeSelf();
+        decl.remove();
       });
-      rule.eachDecl(decl => {
+      rule.walkDecls(decl => {
         var tokens = decl.value.split(/(,|'[^']*'|"[^"]*")/);
         tokens = tokens.map((token, idx) => {
           if(idx === 0 || tokens[idx - 1] === ',') {
@@ -130,8 +130,8 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
       });
     });
 
-    css.eachAtRule(atrule => {
-      // Find any :local keyframes and rewrite them
+    // Find any :local keyframes
+    css.walkAtRules(atrule => {
       if(/keyframes$/.test(atrule.name)) {
         var localKeyFrames = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params);
         if(localKeyFrames) {
@@ -156,7 +156,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
         nodes: exportedNames.map(exportedName => postcss.decl({
           prop: exportedName,
           value: exports[exportedName].join(" "),
-          before: "\n  ",
+          raws: { before: "\n  " },
           _autoprefixerDisabled: true
         }))
       }));
