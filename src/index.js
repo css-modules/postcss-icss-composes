@@ -150,14 +150,17 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
     let exportedNames = Object.keys(exports);
     if (exportedNames.length > 0) {
       css.append(postcss.rule({
-        selector: `:export`,
-        nodes: exportedNames.map(exportedName => postcss.decl({
+        selector: `:export`
+      }));
+      let exportRule = css.nodes[css.nodes.length - 1];
+      exportedNames.forEach(exportedName => {
+        exportRule.append(postcss.decl({
           prop: exportedName,
           value: exports[exportedName].join(' '),
           raws: { before: '\n  ' },
           _autoprefixerDisabled: true
-        }))
-      }));
+        }));
+      });
     }
   };
 });
