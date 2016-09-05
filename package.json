@@ -38,7 +38,7 @@
     "postcss": "^5.0.4"
   },
   "devDependencies": {
-    "babel": "^5.4.7",
+    "babel": "^6.1.5",
     "babel-eslint": "^6.1.2",
     "babel-istanbul": "^0.4.0",
     "babelify": "^7.1.0",
