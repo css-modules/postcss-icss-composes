@@ -1,1 +1,1 @@
-composition is only allowed when selector is single :local class name not in "body", "body" is weird
+composition is only allowed for a single :local class, but not for selectors such as "body"
