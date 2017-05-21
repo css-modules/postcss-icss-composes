@@ -49,7 +49,7 @@ Since we're exporting class names, there's no reason to export only one. This ca
 
 becomes:
 
-```
+```css
 :export {
   continueButton: ___buttons_continueButton_djd347adcxz9 globalButtonStyle;
 }
