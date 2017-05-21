@@ -6,23 +6,26 @@ let hasOwnProperty = Object.prototype.hasOwnProperty;
 function getSingleLocalNamesForComposes(selectors) {
   return selectors.nodes.map((node) => {
     if(node.type !== 'selector' || node.nodes.length !== 1) {
-      throw new Error('composition is only allowed when selector is single :local class name not in "' +
-        Tokenizer.stringify(selectors) + '"');
+      throw new Error(`composition is only allowed for a single :local class, but not for combinations such as "${Tokenizer.stringify(selectors)}"`)
     }
+
     node = node.nodes[0];
-    if(node.type !== 'nested-pseudo-class' || node.name !== 'local' || node.nodes.length !== 1) {
-      throw new Error('composition is only allowed when selector is single :local class name not in "' +
-        Tokenizer.stringify(selectors) + '", "' + Tokenizer.stringify(node) + '" is weird');
+    if(node.type !== 'nested-pseudo-class') {
+      throw new Error(`composition is only allowed for a single :local class, but not for selectors such as "${Tokenizer.stringify(selectors)}"`);
+    } else if (node.name !== 'local') {
+      throw new Error(`composition is only allowed for a single :local class, but not for "${Tokenizer.stringify(selectors)}"`);
+    } else if (node.nodes.length !== 1) {
+      throw new Error(`composition is only allowed for a single :local class, but not for combinations such as "${Tokenizer.stringify(selectors)}"`);
     }
+
     node = node.nodes[0];
     if(node.type !== 'selector' || node.nodes.length !== 1) {
-      throw new Error('composition is only allowed when selector is single :local class name not in "' +
-        Tokenizer.stringify(selectors) + '", "' + Tokenizer.stringify(node) + '" is weird');
+      throw new Error(`composition is only allowed for a single :local class, but not for combinations such as "${Tokenizer.stringify(selectors)}"`);
     }
+
     node = node.nodes[0];
     if(node.type !== 'class') { // 'id' is not possible, because you can't compose ids
-      throw new Error('composition is only allowed when selector is single :local class name not in "' +
-        Tokenizer.stringify(selectors) + '", "' + Tokenizer.stringify(node) + '" is weird');
+      throw new Error(`composition is only allowed for a single :local class, but not for "${Tokenizer.stringify(selectors)}"`);
     }
     return node.name;
   });
@@ -150,7 +153,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
     let exportedNames = Object.keys(exports);
     if (exportedNames.length > 0) {
       let exportRule = postcss.rule({selector: `:export`});
-      exportedNames.forEach(exportedName => 
+      exportedNames.forEach(exportedName =>
         exportRule.append({
           prop: exportedName,
           value: exports[exportedName].join(' '),
