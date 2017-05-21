@@ -40,9 +40,9 @@ describe("test-cases", function() {
             return generateScopedName(exportedName, normalizedPath);
           }
         };
-        if(fs.existsSync(path.join(testDir, testCase, "config.json"))) {
-          config = JSON.parse(fs.readFileSync(path.join(testDir, testCase, "config.json"), "utf-8"));
-        }
+        try {
+          config = require(path.join(testDir, testCase, "config"));
+        } catch(e) {}
         if(fs.existsSync(path.join(testDir, testCase, "options.js"))) {
           options = require(path.join(testDir, testCase, "options.js"));
         }
