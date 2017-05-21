@@ -34,8 +34,8 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
 
     let exports = {};
 
-    function exportScopedName(name) {
-      let scopedName = generateScopedName(name, css.source.input.from, css.source.input.css);
+    function exportScopedName(name, node) {
+      let scopedName = generateScopedName(name, css.source.input.from, css.source.input.css, { node });
       exports[name] = exports[name] || [];
       if(exports[name].indexOf(scopedName) < 0) {
         exports[name].push(scopedName);
@@ -51,7 +51,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
           return newNode;
         case 'class':
         case 'id':
-          let scopedName = exportScopedName(node.name);
+          let scopedName = exportScopedName(node.name, node);
           newNode.name = scopedName;
           return newNode;
       }
@@ -124,7 +124,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
           if(idx === 0 || tokens[idx - 1] === ',') {
             let localMatch = /^(\s*):local\s*\((.+?)\)/.exec(token);
             if(localMatch) {
-              return localMatch[1] + exportScopedName(localMatch[2]) + token.substr(localMatch[0].length);
+              return localMatch[1] + exportScopedName(localMatch[2], decl) + token.substr(localMatch[0].length);
             } else {
               return token;
             }
@@ -141,7 +141,7 @@ const processor = postcss.plugin('postcss-modules-scope', function(options) {
       if(/keyframes$/.test(atrule.name)) {
         var localMatch = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params);
         if(localMatch) {
-          atrule.params = exportScopedName(localMatch[1]);
+          atrule.params = exportScopedName(localMatch[1], atrule);
         }
       }
     });
