@@ -50,6 +50,9 @@ Since we're exporting class names, there's no reason to export only one. This ca
 becomes:
 
 ```
+:export {
+  continueButton: ___buttons_continueButton_djd347adcxz9 globalButtonStyle;
+}
 .globalButtonStyle {
   background: white;
   border: 1px solid;
@@ -58,8 +61,7 @@ becomes:
 .globalButtonStyle:hover {
   box-shadow: 0 0 4px -2px;
 }
-:local(.continueButton) {
-  compose-with: globalButtonStyle;
+.___buttons_continueButton_djd347adcxz9 {
   color: green;
 }
 ```
