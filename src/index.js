@@ -52,10 +52,19 @@ function getSingleLocalNamesForComposes(selectors) {
   })
 }
 
-module.exports = postcss.plugin('postcss-modules-scope', function(options) {
-  return css => {
+const defaultGenerateScopedName = function(exportedName, path) {
+  let sanitisedPath = path
+    .replace(/\.[^\.\/\\]+$/, '')
+    .replace(/[\W_]+/g, '_')
+    .replace(/^_|_$/g, '')
+  return `_${sanitisedPath}__${exportedName}`
+}
+
+module.exports = postcss.plugin(
+  'postcss-modules-scope',
+  (options = {}) => css => {
     let generateScopedName =
-      (options && options.generateScopedName) || processor.generateScopedName
+      options.generateScopedName || defaultGenerateScopedName
 
     let exports = {}
 
@@ -66,7 +75,7 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
         css.source.input.css
       )
       exports[name] = exports[name] || []
-      if (exports[name].indexOf(scopedName) < 0) {
+      if (exports[name].indexOf(scopedName) === -1) {
         exports[name].push(scopedName)
       }
       return scopedName
@@ -190,12 +199,6 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
     }, {})
     css.append(createICSSRules({}, normalizedExports))
   }
-})
+)
 
-module.exports.generateScopedName = function(exportedName, path) {
-  let sanitisedPath = path
-    .replace(/\.[^\.\/\\]+$/, '')
-    .replace(/[\W_]+/g, '_')
-    .replace(/^_|_$/g, '')
-  return `_${sanitisedPath}__${exportedName}`
-}
+module.exports.generateScopedName = defaultGenerateScopedName
