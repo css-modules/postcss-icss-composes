@@ -110,9 +110,9 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
 
     // Find any :import and remember imported names
     let importedNames = {}
-    css.walkRules(rule => {
-      if (/^:import\(.+\)$/.test(rule.selector)) {
-        rule.walkDecls(decl => {
+    css.each(node => {
+      if (node.type === 'rule' && /^:import\(.+\)$/.test(node.selector)) {
+        node.walkDecls(decl => {
           importedNames[decl.prop] = true
         })
       }
