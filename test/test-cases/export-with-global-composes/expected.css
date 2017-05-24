@@ -3,4 +3,5 @@
 .aThirdClass { color: red; }
 ._lib_extender__exportName { color: green; }
 :export {
-  exportName: _lib_extender__exportName otherClass andAgain aThirdClass; }
+  exportName: _lib_extender__exportName otherClass andAgain aThirdClass;
+}

@@ -1,5 +1,6 @@
-const postcss = require('postcss')
-const Tokenizer = require('css-selector-tokenizer')
+import postcss from 'postcss'
+import Tokenizer from 'css-selector-tokenizer'
+import { createICSSRules } from 'icss-utils'
 
 let hasOwnProperty = Object.prototype.hasOwnProperty
 
@@ -84,10 +85,7 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
           return newNode
       }
       throw new Error(
-        node.type +
-          ' ("' +
-          Tokenizer.stringify(node) +
-          '") is not allowed in a :local block'
+        `${node.type} ("${Tokenizer.stringify(node)}") is not allowed in a :local block`
       )
     }
 
@@ -186,18 +184,11 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
     })
 
     // If we found any :locals, insert an :export rule
-    let exportedNames = Object.keys(exports)
-    if (exportedNames.length > 0) {
-      let exportRule = postcss.rule({ selector: `:export` })
-      exportedNames.forEach(exportedName =>
-        exportRule.append({
-          prop: exportedName,
-          value: exports[exportedName].join(' '),
-          raws: { before: '\n  ' }
-        })
-      )
-      css.append(exportRule)
-    }
+    const normalizedExports = Object.keys(exports).reduce((acc, key) => {
+      acc[key] = exports[key].join(' ')
+      return acc
+    }, {})
+    css.append(createICSSRules({}, normalizedExports))
   }
 })
 

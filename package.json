@@ -47,6 +47,7 @@
   "homepage": "https://github.com/css-modules/postcss-modules-scope",
   "dependencies": {
     "css-selector-tokenizer": "^0.7.0",
+    "icss-utils": "^2.0.0",
     "postcss": "^6.0.1"
   },
   "devDependencies": {
