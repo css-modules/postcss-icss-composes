@@ -1,6 +1,6 @@
 import postcss from 'postcss'
 import Tokenizer from 'css-selector-tokenizer'
-import { createICSSRules } from 'icss-utils'
+import { extractICSS, createICSSRules } from 'icss-utils'
 
 let hasOwnProperty = Object.prototype.hasOwnProperty
 
@@ -118,14 +118,13 @@ module.exports = postcss.plugin(
     }
 
     // Find any :import and remember imported names
-    let importedNames = {}
-    css.each(node => {
-      if (node.type === 'rule' && /^:import\(.+\)$/.test(node.selector)) {
-        node.walkDecls(decl => {
-          importedNames[decl.prop] = true
-        })
-      }
-    })
+    const { icssImports } = extractICSS(css, false)
+    const importedNames = Object.keys(icssImports).reduce((acc, key) => {
+      Object.keys(icssImports[key]).forEach(local => {
+        acc[local] = true
+      })
+      return acc
+    }, {})
 
     // Find any :local classes
     css.walkRules(rule => {

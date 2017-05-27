@@ -1520,9 +1520,9 @@ iconv-lite@0.4.13:
   version "0.4.13"
   resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.4.13.tgz#1f88aba4ab0b1508e8312acc39345f36e992e2f2"
 
-icss-utils@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/icss-utils/-/icss-utils-2.0.0.tgz#9eb8432af871adc003e4ac7a574d24169398317d"
+icss-utils@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/icss-utils/-/icss-utils-2.1.0.tgz#83f0a0ec378bf3246178b6c2ad9136f135b1c962"
   dependencies:
     postcss "^6.0.1"
 
