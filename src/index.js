@@ -1,5 +1,6 @@
-const postcss = require('postcss')
-const Tokenizer = require('css-selector-tokenizer')
+import postcss from 'postcss'
+import Tokenizer from 'css-selector-tokenizer'
+import { extractICSS, createICSSRules } from 'icss-utils'
 
 let hasOwnProperty = Object.prototype.hasOwnProperty
 
@@ -51,10 +52,19 @@ function getSingleLocalNamesForComposes(selectors) {
   })
 }
 
-module.exports = postcss.plugin('postcss-modules-scope', function(options) {
-  return css => {
+const defaultGenerateScopedName = function(exportedName, path) {
+  let sanitisedPath = path
+    .replace(/\.[^\.\/\\]+$/, '')
+    .replace(/[\W_]+/g, '_')
+    .replace(/^_|_$/g, '')
+  return `_${sanitisedPath}__${exportedName}`
+}
+
+module.exports = postcss.plugin(
+  'postcss-modules-scope',
+  (options = {}) => css => {
     let generateScopedName =
-      (options && options.generateScopedName) || processor.generateScopedName
+      options.generateScopedName || defaultGenerateScopedName
 
     let exports = {}
 
@@ -65,7 +75,7 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
         css.source.input.css
       )
       exports[name] = exports[name] || []
-      if (exports[name].indexOf(scopedName) < 0) {
+      if (exports[name].indexOf(scopedName) === -1) {
         exports[name].push(scopedName)
       }
       return scopedName
@@ -84,10 +94,7 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
           return newNode
       }
       throw new Error(
-        node.type +
-          ' ("' +
-          Tokenizer.stringify(node) +
-          '") is not allowed in a :local block'
+        `${node.type} ("${Tokenizer.stringify(node)}") is not allowed in a :local block`
       )
     }
 
@@ -111,14 +118,13 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
     }
 
     // Find any :import and remember imported names
-    let importedNames = {}
-    css.walkRules(rule => {
-      if (/^:import\(.+\)$/.test(rule.selector)) {
-        rule.walkDecls(decl => {
-          importedNames[decl.prop] = true
-        })
-      }
-    })
+    const { icssImports } = extractICSS(css, false)
+    const importedNames = Object.keys(icssImports).reduce((acc, key) => {
+      Object.keys(icssImports[key]).forEach(local => {
+        acc[local] = true
+      })
+      return acc
+    }, {})
 
     // Find any :local classes
     css.walkRules(rule => {
@@ -186,25 +192,12 @@ module.exports = postcss.plugin('postcss-modules-scope', function(options) {
     })
 
     // If we found any :locals, insert an :export rule
-    let exportedNames = Object.keys(exports)
-    if (exportedNames.length > 0) {
-      let exportRule = postcss.rule({ selector: `:export` })
-      exportedNames.forEach(exportedName =>
-        exportRule.append({
-          prop: exportedName,
-          value: exports[exportedName].join(' '),
-          raws: { before: '\n  ' }
-        })
-      )
-      css.append(exportRule)
-    }
+    const normalizedExports = Object.keys(exports).reduce((acc, key) => {
+      acc[key] = exports[key].join(' ')
+      return acc
+    }, {})
+    css.append(createICSSRules({}, normalizedExports))
   }
-})
+)
 
-module.exports.generateScopedName = function(exportedName, path) {
-  let sanitisedPath = path
-    .replace(/\.[^\.\/\\]+$/, '')
-    .replace(/[\W_]+/g, '_')
-    .replace(/^_|_$/g, '')
-  return `_${sanitisedPath}__${exportedName}`
-}
+module.exports.generateScopedName = defaultGenerateScopedName
