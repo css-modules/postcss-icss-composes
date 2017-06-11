@@ -158,37 +158,6 @@ module.exports = postcss.plugin(
         })
         decl.remove()
       })
-
-      rule.walkDecls(decl => {
-        var tokens = decl.value.split(/(,|'[^']*'|"[^"]*")/)
-        tokens = tokens.map((token, idx) => {
-          if (idx === 0 || tokens[idx - 1] === ',') {
-            let localMatch = /^(\s*):local\s*\((.+?)\)/.exec(token)
-            if (localMatch) {
-              return (
-                localMatch[1] +
-                exportScopedName(localMatch[2]) +
-                token.substr(localMatch[0].length)
-              )
-            } else {
-              return token
-            }
-          } else {
-            return token
-          }
-        })
-        decl.value = tokens.join('')
-      })
-    })
-
-    // Find any :local keyframes
-    css.walkAtRules(atrule => {
-      if (/keyframes$/.test(atrule.name)) {
-        var localMatch = /^\s*:local\s*\((.+?)\)\s*$/.exec(atrule.params)
-        if (localMatch) {
-          atrule.params = exportScopedName(localMatch[1])
-        }
-      }
     })
 
     // If we found any :locals, insert an :export rule
