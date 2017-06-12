@@ -133,6 +133,40 @@ test("warn on composes in tag", () => {
   });
 });
 
+test("warn on composes in @media", () => {
+  return run({
+    fixture: `
+      @media print {
+        .className {
+          composes: otherClassName;
+        }
+        .empty {}
+      }
+    `,
+    expected: `
+      :export {
+        className: className otherClassName
+      }
+      @media print {
+        .className {
+        }
+        .empty {}
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "className",
+        value: "otherClassName"
+      }
+    ],
+    warnings: [
+      "composition cannot be conditional and is not allowed in media queries"
+    ]
+  });
+});
+
 test("compose class", () => {
   return run({
     fixture: `
@@ -294,6 +328,203 @@ test("icss-scoped contract", () => {
         type: "icss-composed",
         name: "className",
         value: "otherClassName"
+      }
+    ]
+  });
+});
+
+test("compose from file", () => {
+  return run({
+    fixture: `
+      .a {
+        composes: b from 'path';
+        composes: c from "path";
+      }
+    `,
+    expected: `
+      :import('path') {
+        __composed__b__0: b;
+        __composed__c__1: c
+      }
+      :export {
+        a: a __composed__b__0 __composed__c__1
+      }
+      .a {
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__b__0"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__c__1"
+      }
+    ]
+  });
+});
+
+test("compose multiple from file", () => {
+  return run({
+    fixture: `
+      .a {
+        composes: b c from 'path';
+      }
+    `,
+    expected: `
+      :import('path') {
+        __composed__b__0: b;
+        __composed__c__1: c
+      }
+      :export {
+        a: a __composed__b__0 __composed__c__1
+      }
+      .a {
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__b__0"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__c__1"
+      }
+    ]
+  });
+});
+
+test("save existing :import and :export", () => {
+  return run({
+    fixture: `
+      :import('path') {
+        __a: b
+      }
+      :export {
+        a: __a
+      }
+      .c {
+        composes: d from 'path';
+      }
+    `,
+    expected: `
+      :import('path') {
+        __a: b;
+        __composed__d__0: d
+      }
+      :export {
+        a: __a;
+        c: c __composed__d__0
+      }
+      .c {
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "c",
+        value: "__composed__d__0"
+      }
+    ]
+  });
+});
+
+test("resolve external composes order", () => {
+  return run({
+    fixture: `
+      .a {
+        composes: c from './c.css';
+      }
+      .b {
+        /* 'b' should be after 'c' */
+        composes: d from './d.css';
+        composes: c from './c.css';
+      }
+    `,
+    expected: `
+      :import('./c.css') {
+        __composed__c__0: c
+      }
+      :import('./d.css') {
+        __composed__d__1: d
+      }
+      :export {
+        a: a __composed__c__0;
+        b: b __composed__d__1 __composed__c__0
+      }
+      .a {
+      }
+      .b {
+        /* 'b' should be after 'c' */
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__c__0"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "b",
+        value: "__composed__d__1"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "b",
+        value: "__composed__c__0"
+      }
+    ]
+  });
+});
+
+test("resolve composes with the same name from different files", () => {
+  return run({
+    fixture: `
+      .a {
+        composes: b from './b1.css';
+        composes: b from './b2.css';
+      }
+    `,
+    expected: `
+      :import('./b1.css') {
+        __composed__b__0: b
+      }
+      :import('./b2.css') {
+        __composed__b__1: b
+      }
+      :export {
+        a: a __composed__b__0 __composed__b__1
+      }
+      .a {
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__b__0"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "__composed__b__1"
       }
     ]
   });

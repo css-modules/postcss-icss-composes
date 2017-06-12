@@ -1,11 +1,13 @@
 /* eslint-env node */
 import postcss from "postcss";
 import Tokenizer from "css-selector-tokenizer";
+import valueParser from "postcss-value-parser";
 import { extractICSS, createICSSRules } from "icss-utils";
 
 const plugin = "postcss-icss-composes";
 
 const flatten = outer => outer.reduce((acc, inner) => [...acc, ...inner], []);
+
 const includes = (array, value) => array.indexOf(value) !== -1;
 
 const isSingular = node => node.nodes.length === 1;
@@ -49,14 +51,49 @@ const getIdentifiers = (rule, result) => {
     .filter(identifier => identifier !== null);
 };
 
-const walkComposes = (css, callback) =>
+const isComposes = node =>
+  node.type === "decl" &&
+  (node.prop === "composes" || node.prop === "compose-with");
+
+const walkRules = (css, callback) =>
   css.walkRules(rule => {
-    rule.each(node => {
-      if (node.type === "decl" && /^(composes|compose-with)$/.test(node.prop)) {
-        callback(rule, node);
-      }
-    });
+    if (rule.some(node => isComposes(node))) {
+      callback(rule);
+    }
   });
+
+const walkDecls = (rule, callback) =>
+  rule.each(node => {
+    if (isComposes(node)) {
+      callback(node);
+    }
+  });
+
+const isMedia = node =>
+  (node.type === "atrule" && node.name === "media") ||
+  (node.parent && isMedia(node.parent));
+
+const splitBy = (array, cond) =>
+  array.reduce(
+    (acc, item) =>
+      cond(item)
+        ? [...acc, []]
+        : [...acc.slice(0, -1), [...acc[acc.length - 1], item]],
+    [[]]
+  );
+
+const parseComposes = value => {
+  const parsed = valueParser(value);
+  const [names, path] = splitBy(
+    parsed.nodes,
+    node => node.type === "word" && node.value === "from"
+  );
+  return {
+    names: names.filter(node => node.type === "word").map(node => node.value),
+    path: path &&
+      path.filter(node => node.type === "string").map(node => node.value)[0]
+  };
+};
 
 const combineIntoMessages = (classes, composed) =>
   flatten(
@@ -68,6 +105,25 @@ const combineIntoMessages = (classes, composed) =>
         value
       }))
     )
+  );
+
+const invertObject = obj =>
+  Object.keys(obj).reduce(
+    (acc, key) => Object.assign({}, acc, { [obj[key]]: key }),
+    {}
+  );
+
+const combineImports = (icss, composed) =>
+  Object.keys(composed).reduce(
+    (acc, path) =>
+      Object.assign({}, acc, {
+        [`'${path}'`]: Object.assign(
+          {},
+          acc[`'${path}'`],
+          invertObject(composed[path])
+        )
+      }),
+    Object.assign({}, icss)
   );
 
 const convertMessagesToExports = (messages, aliases) =>
@@ -98,21 +154,48 @@ const getScopedClasses = messages =>
 module.exports = postcss.plugin(plugin, () => (css, result) => {
   const scopedClasses = getScopedClasses(result.messages);
   const composedMessages = [];
+  const composedImports = {};
+
+  let importedIndex = 0;
+  const getImportedName = (path, name) => {
+    if (!composedImports[path]) {
+      composedImports[path] = {};
+    }
+    if (composedImports[path][name]) {
+      return composedImports[path][name];
+    }
+    const importedName = `__composed__${name}__${importedIndex}`;
+    composedImports[path][name] = importedName;
+    importedIndex += 1;
+    return importedName;
+  };
 
   const { icssImports, icssExports } = extractICSS(css);
 
-  walkComposes(css, (rule, decl) => {
+  walkRules(css, rule => {
     const classes = getIdentifiers(rule, result);
-    const composed = decl.value.split(/\s+/);
-    composedMessages.push(...combineIntoMessages(classes, composed));
-    decl.remove();
+    if (isMedia(rule)) {
+      result.warn(
+        "composition cannot be conditional and is not allowed in media queries",
+        { node: rule }
+      );
+    }
+    walkDecls(rule, decl => {
+      const { names, path } = parseComposes(decl.value);
+      const composed = path
+        ? names.map(name => getImportedName(path, name))
+        : names;
+      composedMessages.push(...combineIntoMessages(classes, composed));
+      decl.remove();
+    });
   });
 
-  const compositionExports = convertMessagesToExports(
+  const composedExports = convertMessagesToExports(
     composedMessages,
     scopedClasses
   );
-  const exports = Object.assign({}, icssExports, compositionExports);
-  css.prepend(createICSSRules(icssImports, exports));
+  const exports = Object.assign({}, icssExports, composedExports);
+  const imports = combineImports(icssImports, composedImports);
+  css.prepend(createICSSRules(imports, exports));
   result.messages.push(...composedMessages);
 });
