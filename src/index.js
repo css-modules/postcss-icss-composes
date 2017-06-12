@@ -5,6 +5,9 @@ import { extractICSS, createICSSRules } from "icss-utils";
 
 const plugin = "postcss-icss-composes";
 
+const flatten = outer => outer.reduce((acc, inner) => [...acc, ...inner], []);
+const includes = (array, value) => array.indexOf(value) !== -1;
+
 const isSingular = node => node.nodes.length === 1;
 
 const isLocal = node =>
@@ -55,8 +58,6 @@ const walkComposes = (css, callback) =>
     });
   });
 
-const flatten = outer => outer.reduce((acc, inner) => [...acc, ...inner], []);
-
 const combineIntoMessages = (classes, composed) =>
   flatten(
     classes.map(name =>
@@ -72,10 +73,7 @@ const combineIntoMessages = (classes, composed) =>
 const convertMessagesToExports = (messages, aliases) =>
   messages
     .map(msg => msg.name)
-    .reduce(
-      (acc, name) => (acc.indexOf(name) === -1 ? [...acc, name] : acc),
-      []
-    )
+    .reduce((acc, name) => (includes(acc, name) ? acc : [...acc, name]), [])
     .reduce(
       (acc, name) =>
         Object.assign({}, acc, {
