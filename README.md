@@ -1,102 +1,105 @@
-# CSS Modules: Scope Locals & Extend
+# postcss-icss-composes [![Build Status][travis-img]][travis]
 
-[![Build Status](https://travis-ci.org/css-modules/postcss-modules-scope.svg?branch=master)](https://travis-ci.org/css-modules/postcss-modules-scope)
+[PostCSS]: https://github.com/postcss/postcss
+[travis-img]: https://travis-ci.org/css-modules/postcss-icss-selectors.svg
+[travis]: https://travis-ci.org/css-modules/postcss-icss-selectors
 
-Transforms:
+PostCSS plugin for css modules to compose local-scope classes
 
-```css
-:local(.continueButton) {
-  color: green;
-}
-```
-
-into:
-
-```css
-:export {
-  continueButton: __buttons_continueButton_djd347adcxz9;
-}
-.__buttons_continueButton_djd347adcxz9 {
-  color: green;
-}
-```
-
-so it doesn't pollute CSS global scope and can be simply used in JS like so:
+## Usage
 
 ```js
-import styles from './buttons.css'
-elem.innerHTML = `<button class="${styles.continueButton}">Continue</button>`
+postcss([require('postcss-icss-composes')])
 ```
 
-## Composition
+See [PostCSS] docs for examples for your environment.
 
-Since we're exporting class names, there's no reason to export only one. This can give us some really useful reuse of styles:
+### Local class composition
+
+`composes` and `compose-with` combines specified class name with rule class name.
 
 ```css
-.globalButtonStyle {
-  background: white;
-  border: 1px solid;
-  border-radius: 0.25rem;
+.buttonStyle {
+  background: #fff;
 }
-.globalButtonStyle:hover {
+.buttonStyle:hover {
   box-shadow: 0 0 4px -2px;
 }
-:local(.continueButton) {
-  compose-with: globalButtonStyle;
+.cellStyle {
+  margin: 10px;
+}
+.addButton {
+  composes: buttonStyle cellStyle;
   color: green;
 }
-```
 
-becomes:
+/* becomes */
 
-```css
 :export {
-  continueButton: ___buttons_continueButton_djd347adcxz9 globalButtonStyle;
+  buttonStyle: buttonStyle;
+  cellStyle: cellStyle;
+  addButton: addButton buttonStyle cellStyle
 }
-.globalButtonStyle {
-  background: white;
-  border: 1px solid;
-  border-radius: 0.25rem;
+.buttonStyle {
+  background: #fff;
 }
-.globalButtonStyle:hover {
+.buttonStyle:hover {
   box-shadow: 0 0 4px -2px;
 }
-.___buttons_continueButton_djd347adcxz9 {
+.cellStyle {
+  margin: 10px;
+}
+.addButton {
   color: green;
 }
 ```
 
-**Note:** you can also use `composes` as a shorthand for `compose-with`
+### Global class composition
 
-## Local-by-default & reuse across files
+You may use any identifier for composition
 
-You're looking for [CSS Modules](https://github.com/css-modules/css-modules). It uses this plugin as well as a few others, and it's amazing.
+```css
+.addButton {
+  composes: globalButtonStyle;
+  background: #000;
+}
 
-## Building
-
+/* becomes */
+:export {
+  addButton: addButton globalButtonStyle
+}
+.addButton {
+  background: #000;
+}
 ```
-npm install
-npm test
+
+### Scoping class names
+
+You may add [postcss-icss-selectors](https://github.com/css-modules/postcss-icss-selectors) plugin to local-scope classes.
+
+```css
+.buttonStyle {
+  background: #fff;
+}
+.addButton {
+  composes: buttonStyle;
+  border: 1px solid #000;
+}
+
+/* becomes */
+
+:export {
+  buttonStyle: __scope__buttonStyle;
+  addButton: __scope__addButton __scope__buttonStyle
+}
+.__scope__buttonStyle {
+  background: #fff;
+}
+.__scope__addButton {
+  border: 1px solid #000;
+}
 ```
-
-[![Build Status](https://travis-ci.org/css-modules/postcss-modules-scope.svg?branch=master)](https://travis-ci.org/css-modules/postcss-modules-scope)
-
-* Lines: [![Coverage Status](https://coveralls.io/repos/css-modules/postcss-modules-scope/badge.svg?branch=master)](https://coveralls.io/r/css-modules/postcss-modules-scope?branch=master)
-* Statements: [![codecov.io](http://codecov.io/github/css-modules/postcss-modules-scope/coverage.svg?branch=master)](http://codecov.io/github/css-modules/postcss-modules-scope?branch=master)
-
-## Development
-
-- `npm autotest` will watch `src` and `test` for changes and run the tests, and transpile the ES6 to ES5 on success
 
 ## License
 
-ISC
-
-## With thanks
-
-- Mark Dalgleish
-- Tobias Koppers
-- Guy Bedford
-
----
-Glen Maddern, 2015.
+MIT © Glen Maddern and Bogdan Chadkin, 2015

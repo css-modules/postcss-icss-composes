@@ -1,7 +1,7 @@
 {
-  "name": "postcss-modules-scope",
+  "name": "postcss-icss-composes",
   "version": "1.1.0",
-  "description": "A CSS Modules transform to extract export statements from local-scope classes",
+  "description": "PostCSS plugin for css modules to compose local-scope classes",
   "main": "lib/index.js",
   "scripts": {
     "build": "babel --out-dir lib src",
@@ -38,10 +38,6 @@
       ]
     ]
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/css-modules/postcss-modules-scope.git"
-  },
   "keywords": [
     "css-modules",
     "postcss",
@@ -50,12 +46,9 @@
   "files": [
     "lib"
   ],
-  "author": "Glen Maddern",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/css-modules/postcss-modules-scope/issues"
-  },
-  "homepage": "https://github.com/css-modules/postcss-modules-scope",
+  "author": "Glen Maddern and Bogdan Chadkin",
+  "repository": "css-modules/postcss-icss-composes",
+  "license": "MIT",
   "dependencies": {
     "css-selector-tokenizer": "^0.7.0",
     "icss-utils": "^2.1.0",
