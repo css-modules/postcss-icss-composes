@@ -1,172 +1,120 @@
-import postcss from 'postcss'
-import Tokenizer from 'css-selector-tokenizer'
-import { extractICSS, createICSSRules } from 'icss-utils'
+/* eslint-env node */
+import postcss from "postcss";
+import Tokenizer from "css-selector-tokenizer";
+import { extractICSS, createICSSRules } from "icss-utils";
 
-let hasOwnProperty = Object.prototype.hasOwnProperty
+const plugin = "postcss-icss-composes";
 
-function getSingleLocalNamesForComposes(selectors) {
-  return selectors.nodes.map(node => {
-    if (node.type !== 'selector' || node.nodes.length !== 1) {
-      throw new Error(
-        'composition is only allowed when selector is single :local class name not in "' +
-          Tokenizer.stringify(selectors) +
-          '"'
-      )
-    }
-    node = node.nodes[0]
-    if (
-      node.type !== 'nested-pseudo-class' ||
-      node.name !== 'local' ||
-      node.nodes.length !== 1
-    ) {
-      throw new Error(
-        'composition is only allowed when selector is single :local class name not in "' +
-          Tokenizer.stringify(selectors) +
-          '", "' +
-          Tokenizer.stringify(node) +
-          '" is weird'
-      )
-    }
-    node = node.nodes[0]
-    if (node.type !== 'selector' || node.nodes.length !== 1) {
-      throw new Error(
-        'composition is only allowed when selector is single :local class name not in "' +
-          Tokenizer.stringify(selectors) +
-          '", "' +
-          Tokenizer.stringify(node) +
-          '" is weird'
-      )
-    }
-    node = node.nodes[0]
-    if (node.type !== 'class') {
-      // 'id' is not possible, because you can't compose ids
-      throw new Error(
-        'composition is only allowed when selector is single :local class name not in "' +
-          Tokenizer.stringify(selectors) +
-          '", "' +
-          Tokenizer.stringify(node) +
-          '" is weird'
-      )
-    }
-    return node.name
-  })
-}
+const isSingular = node => node.nodes.length === 1;
 
-const defaultGenerateScopedName = function(exportedName, path) {
-  let sanitisedPath = path
-    .replace(/\.[^\.\/\\]+$/, '')
-    .replace(/[\W_]+/g, '_')
-    .replace(/^_|_$/g, '')
-  return `_${sanitisedPath}__${exportedName}`
-}
+const isLocal = node =>
+  node.type === "nested-pseudo-class" && node.name === "local";
 
-module.exports = postcss.plugin(
-  'postcss-modules-scope',
-  (options = {}) => css => {
-    let generateScopedName =
-      options.generateScopedName || defaultGenerateScopedName
+const isClass = node => node.type === "class";
 
-    let exports = {}
-
-    function exportScopedName(name) {
-      let scopedName = generateScopedName(
-        name,
-        css.source.input.from,
-        css.source.input.css
-      )
-      exports[name] = exports[name] || []
-      if (exports[name].indexOf(scopedName) === -1) {
-        exports[name].push(scopedName)
-      }
-      return scopedName
-    }
-
-    function localizeNode(node) {
-      let newNode = Object.create(node)
-      switch (node.type) {
-        case 'selector':
-          newNode.nodes = node.nodes.map(localizeNode)
-          return newNode
-        case 'class':
-        case 'id':
-          let scopedName = exportScopedName(node.name)
-          newNode.name = scopedName
-          return newNode
-      }
-      throw new Error(
-        `${node.type} ("${Tokenizer.stringify(node)}") is not allowed in a :local block`
-      )
-    }
-
-    function traverseNode(node) {
-      switch (node.type) {
-        case 'nested-pseudo-class':
-          if (node.name === 'local') {
-            if (node.nodes.length !== 1) {
-              throw new Error('Unexpected comma (",") in :local block')
-            }
-            return localizeNode(node.nodes[0])
-          }
-        /* falls through */
-        case 'selectors':
-        case 'selector':
-          let newNode = Object.create(node)
-          newNode.nodes = node.nodes.map(traverseNode)
-          return newNode
-      }
-      return node
-    }
-
-    // Find any :import and remember imported names
-    const { icssImports } = extractICSS(css, false)
-    const importedNames = Object.keys(icssImports).reduce((acc, key) => {
-      Object.keys(icssImports[key]).forEach(local => {
-        acc[local] = true
-      })
-      return acc
-    }, {})
-
-    // Find any :local classes
-    css.walkRules(rule => {
-      let selector = Tokenizer.parse(rule.selector)
-      let newSelector = traverseNode(selector)
-      rule.selector = Tokenizer.stringify(newSelector)
-      rule.walkDecls(/composes|compose-with/, decl => {
-        let localNames = getSingleLocalNamesForComposes(selector)
-        let classes = decl.value.split(/\s+/)
-        classes.forEach(className => {
-          let global = /^global\(([^\)]+)\)$/.exec(className)
-          if (global) {
-            localNames.forEach(exportedName => {
-              exports[exportedName].push(global[1])
-            })
-          } else if (hasOwnProperty.call(importedNames, className)) {
-            localNames.forEach(exportedName => {
-              exports[exportedName].push(className)
-            })
-          } else if (hasOwnProperty.call(exports, className)) {
-            localNames.forEach(exportedName => {
-              exports[className].forEach(item => {
-                exports[exportedName].push(item)
-              })
-            })
-          } else {
-            throw decl.error(
-              `referenced class name "${className}" in ${decl.prop} not found`
-            )
-          }
-        })
-        decl.remove()
-      })
-    })
-
-    // If we found any :locals, insert an :export rule
-    const normalizedExports = Object.keys(exports).reduce((acc, key) => {
-      acc[key] = exports[key].join(' ')
-      return acc
-    }, {})
-    css.append(createICSSRules({}, normalizedExports))
+const getSelectorIdentifier = selector => {
+  if (!isSingular(selector)) {
+    return null;
   }
-)
+  const [node] = selector.nodes;
+  if (isLocal(node)) {
+    const local = node.nodes[0];
+    if (isSingular(local) && isClass(local.nodes[0])) {
+      return local.nodes[0].name;
+    }
+    return null;
+  }
+  if (isClass(node)) {
+    return node.name;
+  }
+  return null;
+};
 
-module.exports.generateScopedName = defaultGenerateScopedName
+const getIdentifiers = (rule, result) => {
+  const selectors = Tokenizer.parse(rule.selector).nodes;
+  return selectors
+    .map(selector => {
+      const identifier = getSelectorIdentifier(selector);
+      if (identifier === null) {
+        result.warn(
+          `composition is only allowed in single class selector, not in '${Tokenizer.stringify(selector)}'`,
+          { node: rule }
+        );
+      }
+      return identifier;
+    })
+    .filter(identifier => identifier !== null);
+};
+
+const walkComposes = (css, callback) =>
+  css.walkRules(rule => {
+    rule.each(node => {
+      if (node.type === "decl" && /^(composes|compose-with)$/.test(node.prop)) {
+        callback(rule, node);
+      }
+    });
+  });
+
+const flatten = outer => outer.reduce((acc, inner) => [...acc, ...inner], []);
+
+const combineIntoMessages = (classes, composed) =>
+  flatten(
+    classes.map(name =>
+      composed.map(value => ({
+        plugin,
+        type: "icss-composed",
+        name,
+        value
+      }))
+    )
+  );
+
+const convertMessagesToExports = (messages, aliases) =>
+  messages
+    .map(msg => msg.name)
+    .reduce(
+      (acc, name) => (acc.indexOf(name) === -1 ? [...acc, name] : acc),
+      []
+    )
+    .reduce(
+      (acc, name) =>
+        Object.assign({}, acc, {
+          [name]: [
+            aliases[name] || name,
+            ...messages
+              .filter(msg => msg.name === name)
+              .map(msg => aliases[msg.value] || msg.value)
+          ].join(" ")
+        }),
+      {}
+    );
+
+const getScopedClasses = messages =>
+  messages
+    .filter(msg => msg.type === "icss-scoped")
+    .reduce(
+      (acc, msg) => Object.assign({}, acc, { [msg.name]: msg.value }),
+      {}
+    );
+
+module.exports = postcss.plugin(plugin, () => (css, result) => {
+  const scopedClasses = getScopedClasses(result.messages);
+  const composedMessages = [];
+
+  const { icssImports, icssExports } = extractICSS(css);
+
+  walkComposes(css, (rule, decl) => {
+    const classes = getIdentifiers(rule, result);
+    const composed = decl.value.split(/\s+/);
+    composedMessages.push(...combineIntoMessages(classes, composed));
+    decl.remove();
+  });
+
+  const compositionExports = convertMessagesToExports(
+    composedMessages,
+    scopedClasses
+  );
+  const exports = Object.assign({}, icssExports, compositionExports);
+  css.prepend(createICSSRules(icssImports, exports));
+  result.messages.push(...composedMessages);
+});

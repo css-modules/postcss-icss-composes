@@ -1,1 +1,0 @@
-:local(.otherClass) { background: red; } :local(.exportName) { compose-with: otherClass; color: green; }

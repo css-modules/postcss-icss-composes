@@ -1,1 +1,0 @@
-composition is only allowed when selector is single :local class name not in ":local\(#idName\)", "#idName" is weird
