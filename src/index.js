@@ -42,7 +42,9 @@ const getIdentifiers = (rule, result) => {
       const identifier = getSelectorIdentifier(selector);
       if (identifier === null) {
         result.warn(
-          `composition is only allowed in single class selector, not in '${Tokenizer.stringify(selector)}'`,
+          `composition is only allowed in single class selector, not in '${Tokenizer.stringify(
+            selector
+          )}'`,
           { node: rule }
         );
       }
@@ -90,8 +92,9 @@ const parseComposes = value => {
   );
   return {
     names: names.filter(node => node.type === "word").map(node => node.value),
-    path: path &&
-      path.filter(node => node.type === "string").map(node => node.value)[0]
+    path:
+      path &&
+        path.filter(node => node.type === "string").map(node => node.value)[0]
   };
 };
 
