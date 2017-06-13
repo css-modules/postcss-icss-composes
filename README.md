@@ -1,8 +1,8 @@
 # postcss-icss-composes [![Build Status][travis-img]][travis]
 
 [PostCSS]: https://github.com/postcss/postcss
-[travis-img]: https://travis-ci.org/css-modules/postcss-icss-selectors.svg
-[travis]: https://travis-ci.org/css-modules/postcss-icss-selectors
+[travis-img]: https://travis-ci.org/css-modules/postcss-icss-composes.svg
+[travis]: https://travis-ci.org/css-modules/postcss-icss-composes
 
 PostCSS plugin for css modules to compose local-scope classes
 
