@@ -1,6 +1,6 @@
 {
   "name": "postcss-icss-composes",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "PostCSS plugin for css modules to compose local-scope classes",
   "main": "lib/index.js",
   "scripts": {
