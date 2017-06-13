@@ -75,7 +75,7 @@ You may use any identifier for composition
 
 ### Scoping class names
 
-You may add [postcss-icss-selectors](https://github.com/css-modules/postcss-icss-selectors) plugin to local-scope classes.
+[postcss-icss-selectors](https://github.com/css-modules/postcss-icss-selectors) plugin allows to local-scope classes.
 
 ```css
 .buttonStyle {
@@ -97,6 +97,38 @@ You may add [postcss-icss-selectors](https://github.com/css-modules/postcss-icss
 }
 .__scope__addButton {
   border: 1px solid #000;
+}
+```
+
+### External composition
+
+```css
+/* compositions.css */
+.button {
+  background: #fff;
+  border: 1px solid #000;
+}
+.cell {
+  margin: 10px;
+}
+
+/* main.css */
+.addButton {
+  composes: button cell from './composition.css';
+  font-size: 20px;
+}
+```
+
+### Messages
+
+postcss-icss-composes passes result.messages for each composed class name
+
+```js
+{
+  plugin: 'postcss-icss-composes',
+  type: 'icss-composed',
+  name: string, // rule class name
+  value: string // composed class name
 }
 ```
 
