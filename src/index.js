@@ -8,8 +8,6 @@ const plugin = "postcss-icss-composes";
 
 const flatten = outer => outer.reduce((acc, inner) => [...acc, ...inner], []);
 
-const includes = (array, value) => array.indexOf(value) !== -1;
-
 const isSingular = node => node.nodes.length === 1;
 
 const isLocal = node =>
@@ -129,22 +127,25 @@ const combineImports = (icss, composed) =>
     Object.assign({}, icss)
   );
 
-const convertMessagesToExports = (messages, aliases) =>
-  messages
-    .map(msg => msg.name)
-    .reduce((acc, name) => (includes(acc, name) ? acc : [...acc, name]), [])
-    .reduce(
-      (acc, name) =>
-        Object.assign({}, acc, {
-          [name]: [
-            aliases[name] || name,
-            ...messages
-              .filter(msg => msg.name === name)
-              .map(msg => aliases[msg.value] || msg.value)
-          ].join(" ")
-        }),
-      {}
-    );
+const getComposed = (name, messages, root) => [
+  name,
+  ...flatten(
+    messages
+      .filter(msg => msg.name === name && msg.value !== root)
+      .map(msg => getComposed(msg.value, messages, root))
+  )
+];
+
+const composeAliases = (aliases, messages) =>
+  messages.map(msg => msg.name).reduce(
+    (acc, name) =>
+      Object.assign({}, acc, {
+        [name]: getComposed(name, messages, name)
+          .map(value => aliases[value] || value)
+          .join(" ")
+      }),
+    {}
+  );
 
 const getScopedClasses = messages =>
   messages
@@ -155,7 +156,8 @@ const getScopedClasses = messages =>
     );
 
 module.exports = postcss.plugin(plugin, () => (css, result) => {
-  const scopedClasses = getScopedClasses(result.messages);
+  const localsToScoped = getScopedClasses(result.messages);
+  const scopedToLocals = invertObject(localsToScoped);
   const composedMessages = [];
   const composedImports = {};
 
@@ -176,7 +178,9 @@ module.exports = postcss.plugin(plugin, () => (css, result) => {
   const { icssImports, icssExports } = extractICSS(css);
 
   walkRules(css, rule => {
-    const classes = getIdentifiers(rule, result);
+    const classes = getIdentifiers(rule, result).map(
+      value => scopedToLocals[value] || value
+    );
     if (isMedia(rule)) {
       result.warn(
         "composition cannot be conditional and is not allowed in media queries",
@@ -193,10 +197,7 @@ module.exports = postcss.plugin(plugin, () => (css, result) => {
     });
   });
 
-  const composedExports = convertMessagesToExports(
-    composedMessages,
-    scopedClasses
-  );
+  const composedExports = composeAliases(localsToScoped, composedMessages);
   const exports = Object.assign({}, icssExports, composedExports);
   const imports = combineImports(icssImports, composedImports);
   css.prepend(createICSSRules(imports, exports));

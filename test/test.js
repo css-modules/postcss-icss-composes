@@ -292,33 +292,106 @@ test("compose multiple properties", () => {
   });
 });
 
+test("compose recursive dependencies", () => {
+  return run({
+    fixture: `
+      .a {
+        composes: b;
+      }
+      .b {
+        composes: a;
+      }
+    `,
+    expected: `
+      :export {
+        a: a b;
+        b: b a
+      }
+      .a {
+      }
+      .b {
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "a",
+        value: "b"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "b",
+        value: "a"
+      }
+    ]
+  });
+});
+
+test("compose deep dependencies", () => {
+  return run({
+    fixture: `
+      .a {}
+      .b {
+        composes: a;
+      }
+      .c {
+        composes: b;
+      }
+    `,
+    expected: `
+      :export {
+        b: b a;
+        c: c b a
+      }
+      .a {}
+      .b {
+      }
+      .c {
+      }
+    `,
+    outputMessages: [
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "b",
+        value: "a"
+      },
+      {
+        plugin: "postcss-icss-composes",
+        type: "icss-composed",
+        name: "c",
+        value: "b"
+      }
+    ]
+  });
+});
+
 test("icss-scoped contract", () => {
   const messages = [
-    {
-      plugin: "previous-plugin",
-      type: "icss-scoped",
-      name: "className",
-      value: "__scope__className"
-    },
-    {
-      plugin: "previous-plugin",
-      type: "icss-scoped",
-      name: "otherClassName",
-      value: "__scope__otherClassName"
-    }
+    { type: "icss-scoped", name: "a", value: "__scope__a" },
+    { type: "icss-scoped", name: "b", value: "__scope__b" }
   ];
   return run({
     fixture: `
-      .className {
-        composes: otherClassName;
+      :export {
+        a: __scope__a;
+        b: __scope__b
+      }
+      .__scope__a {}
+      .__scope__b {
+        composes: a;
       }
     `,
     messages,
     expected: `
       :export {
-        className: __scope__className __scope__otherClassName
+        a: __scope__a;
+        b: __scope__b __scope__a
       }
-      .className {
+      .__scope__a {}
+      .__scope__b {
       }
     `,
     outputMessages: [
@@ -326,8 +399,8 @@ test("icss-scoped contract", () => {
       {
         plugin: "postcss-icss-composes",
         type: "icss-composed",
-        name: "className",
-        value: "otherClassName"
+        name: "b",
+        value: "a"
       }
     ]
   });
