@@ -118,11 +118,7 @@ const combineImports = (icss, composed) =>
   Object.keys(composed).reduce(
     (acc, path) =>
       Object.assign({}, acc, {
-        [`'${path}'`]: Object.assign(
-          {},
-          acc[`'${path}'`],
-          invertObject(composed[path])
-        )
+        [path]: Object.assign({}, acc[path], invertObject(composed[path]))
       }),
     Object.assign({}, icss)
   );
