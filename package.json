@@ -51,9 +51,9 @@
   "license": "MIT",
   "dependencies": {
     "css-selector-tokenizer": "^0.7.0",
-    "icss-utils": "^3.0.1",
-    "postcss": "^6.0.2",
-    "postcss-value-parser": "^3.3.0"
+    "icss-utils": "../icss-utils",
+    "postcss": "^7.0.5",
+    "postcss-value-parser": "^3.3.1"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
